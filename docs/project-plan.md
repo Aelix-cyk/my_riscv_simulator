@@ -72,15 +72,12 @@ status only.
 Single source of project-level status. Branch plans carry branch progress
 only.
 
-- `main`: README only so far; the scaffold commit is pending. Commit
-  `4f76348` is unpushed relative to `origin/main`.
-- `learning`: active. Plan and debugger spec committed; `docs/adr/` and the
-  plan edits for this layout are uncommitted; `Cargo.toml`, `.gitignore`, and
-  `src/` are untracked here and belong to no branch yet. M0 not started.
+- `main`: shared material only — README, scaffold, this plan, `process.md`,
+  `adr/README.md`, and `adr/0004-*`. Unpushed relative to `origin/main`.
+- `learning`: active, and in sync with `main`. Shared material plus its
+  branch plan, debugger spec v2, and ADR-0001 to ADR-0003, all committed.
+  M0 not started.
 - `os-booting`: not created. Created from `main` when OS-tier work begins.
 - `user-programs`: not created.
 
-Open items:
-
-- The branch history is not yet reorganised to match section 3 and
-  `process.md`: shared material currently exists only on `learning`.
+Open items: none at present.

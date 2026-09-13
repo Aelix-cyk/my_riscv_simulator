@@ -67,6 +67,3 @@ A spec states what is true now, for its scope — project or branch.
 - Version-to-code traceability: nothing yet tells a reader whether the code
   on a branch matches spec `vN` or `vN-1`. Candidates: a line in the branch's
   README, or a module header. Decide before M2 of the learning branch.
-- Applying section 1 for the first time moves the project-scope material —
-  `project-plan.md`, `process.md`, `adr/README.md`, and `adr/0004-*` — to
-  `main`, and leaves branch-scope material on `learning`.
