@@ -1,8 +1,9 @@
 # Learning Branch Development Plan
 
-Status: draft for review
+Status: draft for review (document status; project status is in
+[project-plan.md](./project-plan.md) section 5)
 
-Branch: `learning`, created from the `main` scaffold commit. Project-level
+Branch: `learning`, branched from `main` at `4f76348`. Project-level
 context — goals, branch strategy, repo workflow, shared toolchain — lives in
 [project-plan.md](./project-plan.md). This document covers the learning
 branch only.
@@ -74,10 +75,13 @@ src/
 
 ### Key seams
 
-- `enum StepEvent { Ran, Halted(u32), Breakpoint, Watchpoint }` — `run()`
-  returns this; the debugger decides what to print and do next.
-- Watchpoints are evaluated before and after each instruction; breakpoints
-  are checked against `pc` before execution.
+- `enum StepEvent { Ran, Halted(u32), WatchpointFired(usize) }` — `run()`
+  returns this; the debugger derives the breakpoint-or-watchpoint label from
+  the entry's expression (ADR-0002) and decides what to print and do next.
+- Every pool entry is evaluated before each instruction and compared with the
+  value stored at the previous check; a change halts and returns control to
+  the debugger. There is no second mechanism for breakpoints (ADR-0001,
+  ADR-0002).
 - **Halt convention:** the instruction `0x0000_006b` is invalid in RV32I, so
   it is reserved as a halt sentinel (`nemu_trap`, same trick as NEMU).
   Execution of it halts the CPU; register `a0` carries the exit code.
@@ -94,10 +98,11 @@ src/
 
 ## 5. Debugger Spec
 
-Locked. The full spec — command table, expression grammar, evaluation
+Locked at v2. The full spec — command table, expression grammar, evaluation
 semantics — lives in [debugger-spec.md](./debugger-spec.md). Highlights:
-NEMU `sdb` parity plus breakpoints (`b` / `bd` / `info b`); breakpoints are
-implemented as watchpoints on `$pc == ADDR`.
+NEMU `sdb` parity plus breakpoints (`b` / `info b`); breakpoints are
+implemented as watchpoints on `$pc == ADDR`, classified by a derived
+predicate (ADR-0001 to ADR-0003).
 
 ## 6. Milestones
 
@@ -129,7 +134,7 @@ Each milestone ends in something you can see run.
   message.
 - `expr.rs`: tokenizer, recursive-descent parser, evaluator with the full
   precedence table; unit tests for precedence and dereference.
-- `sdb`: `p`, `x N EXPR`, `w`, `d`, `info w`, `b`, `bd`, `info b`; watchpoint
+- `sdb`: `p`, `x N EXPR`, `w`, `d`, `info w`, `b`, `info b`; watchpoint
   hooks wired into the run loop.
 - **Acceptance:** hand-assembled `fib(10)` leaves 55 in `a0`; `b` at a loop
   address pauses `c`; `w $a0 == 55` fires; `p (1 + 2) * 3` and `p *0xADDR`
@@ -201,5 +206,5 @@ Each milestone ends in something you can see run.
 
 ## 11. Immediate Next Steps
 
-1. M0 implementation. (Branch creation and the `main` scaffold happen first;
-   see project-plan.md.)
+1. M0 implementation — see section 6. Scaffold placement is tracked in
+   [project-plan.md](./project-plan.md) section 5.
