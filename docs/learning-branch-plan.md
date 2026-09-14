@@ -8,19 +8,14 @@ context — goals, branch strategy, repo workflow, shared toolchain — lives in
 [project-plan.md](./project-plan.md). This document covers the learning
 branch only.
 
+Sections are numbered stably: committed ADRs refer to them by number, so a
+deleted section leaves a gap rather than renumbering everything after it.
+
 ## 1. Purpose
 
 A teaching-oriented RV32I user-level simulator written in Rust, with an
 NEMU-style debugger plus breakpoints. The implementation favors readability
 over brevity: code is written to be read.
-
-## 2. Locked Decisions
-
-- **Teaching clarity over brevity.** Small modules, comments explain *why*,
-  no cleverness for its own sake.
-- **The branch ends at RV32I user-level.** No privileged machinery, ever, on
-  this branch.
-- **Debugger = NEMU `sdb` parity, plus breakpoints.**
 
 ## 3. Scope
 
@@ -73,7 +68,7 @@ src/
     watchpoint.rs    watchpoint & breakpoint lists + check hooks
 ```
 
-### Key seams
+### Key interfaces
 
 - `enum StepEvent { Ran, Halted(u32), WatchpointFired(usize) }` — `run()`
   returns this; the debugger derives the breakpoint-or-watchpoint label from
