@@ -88,6 +88,18 @@ src/
 - **`match`-based decode vs table-driven dispatch:** `match`. Reading the
   decoder top-to-bottom mirrors the spec's own instruction listing — the
   teaching win. Table dispatch is a performance tier, deferred.
+- **One `DecodedInsn` variant per mnemonic vs a shared immediate-ALU shape:**
+  shared — `AluImm { op, rd, rs1, imm }` for the six non-shift immediate ALU
+  ops. The read-compute-write pattern then lives in one arm instead of six.
+  Per-mnemonic variants read more like the spec's listing, but repeat that
+  pattern and the operand fields six times. Shifts and loads share the I-type
+  *encoding* without sharing its meaning, so they do not join this shape.
+- **Decoded immediates cross the interface as `u32`:** decode performs the
+  sign extension and stores the resulting two's-complement pattern, so
+  `execute` never converts. `i32` reads more naturally for negative values at
+  the cost of an `as u32` conversion in every instruction that uses one;
+  `u32` hides the sign, so a negative immediate looks like a large number.
+  One place extends, and no place converts back.
 - **Recursive-descent expression parser vs NEMU's dominant-operator
   recursion:** recursive descent. Easier to read and unit-test in Rust.
 
