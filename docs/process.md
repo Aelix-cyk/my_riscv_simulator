@@ -10,7 +10,7 @@ themselves live in [docs/adr/](./adr/README.md).
 
 | Tier | Contents | Edited where |
 |---|---|---|
-| Shared | `README.md`, scaffold (`Cargo.toml`, `.gitignore`, placeholder `src/`), `project-plan.md`, `process.md`, project-scope ADRs | `main` |
+| Shared | `README.md`, scaffold (`Cargo.toml`, `Cargo.lock`, `.gitignore`, placeholder `src/`), `project-plan.md`, `process.md`, project-scope ADRs | `main` |
 | Branch | branch plan, branch specs, branch-scope ADRs, the real `src/` | that branch |
 
 Rules:
