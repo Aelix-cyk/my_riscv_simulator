@@ -23,7 +23,9 @@ over brevity: code is written to be read.
 
 - All 40 RV32I base instructions, user-level only.
 - `fence` / `fence.i`: decoded and treated as no-ops (single hart, in-order,
-  no memory model needed — note *why* in a comment).
+  no memory model needed — note *why* in a comment). `fence.i` is Zifencei
+  rather than base RV32I, but it is included as a no-op because
+  `rv32ui-p-fence_i` is part of the M4 acceptance set.
 - `ecall` / `ebreak`: decoded, then halt with an explanatory message (trap
   machinery is out of scope; halting honestly is better than faking it).
 - Flat byte-addressable memory, little-endian, unaligned accesses supported.
@@ -33,7 +35,7 @@ over brevity: code is written to be read.
 
 ### Out of scope (explicitly deferred)
 
-- RV64, C (compressed), M, F/D extensions, Zicsr/Zifencei.
+- RV64, C (compressed), M, F/D extensions, Zicsr.
 - Privileged modes, CSRs, trap handling, PMP.
 - MMU / virtual memory.
 - Devices (serial/UART, timer), interrupts.
@@ -77,9 +79,11 @@ src/
   value stored at the previous check; a change halts and returns control to
   the debugger. There is no second mechanism for breakpoints (ADR-0001,
   ADR-0002).
-- **Halt convention:** the instruction `0x0000_006b` is invalid in RV32I, so
-  it is reserved as a halt sentinel (`nemu_trap`, same trick as NEMU).
-  Execution of it halts the CPU; register `a0` carries the exit code.
+- **Halt convention:** `0x0000_006b` is the legal instruction `jal x0, 0`,
+  reserved by convention as a halt sentinel (`nemu_trap`, the same trick as
+  NEMU). `step` compares the raw word against a named `HALT_SENTINEL`
+  constant before calling `decode`, so the decoder stays a pure ISA decoder.
+  Execution of it halts; register `a0` carries the exit code.
 
 ### Design choices and alternatives
 
@@ -100,6 +104,20 @@ src/
   the cost of an `as u32` conversion in every instruction that uses one;
   `u32` hides the sign, so a negative immediate looks like a large number.
   One place extends, and no place converts back.
+- **Undecodable words report one error, worded `unsupported encoding`:**
+  `decode` returns `Result<DecodedInsn, DecodeError>`. At M0 it handles only
+  `addi`, `add`, and the halt sentinel, so most words reaching that error are
+  valid RV32I that is not implemented yet; calling them `invalid encoding`
+  would be false, and would make a typo indistinguishable from an
+  unimplemented instruction. Separating the two needs a full ISA table, whose
+  only payoff is a better message and which expires at M2, when every RV32I
+  instruction is handled and the path becomes honestly invalid-encoding.
+- **Halt check in `step`, not in `decode`:** the run loop owns the convention
+  and compares the raw word before decoding. A check inside `decode` would put
+  a non-ISA rule in the decoder and make `DecodedInsn::Halt` a claim the ISA
+  does not support. Checking the decoded form instead would drag `jal` from M2
+  into M0, and non-halt `jal`s would then have to be rejected outside the
+  decoder, splitting the unsupported-error path.
 - **Recursive-descent expression parser vs NEMU's dominant-operator
   recursion:** recursive descent. Easier to read and unit-test in Rust.
 
@@ -137,8 +155,8 @@ Each milestone ends in something you can see run.
 
 ### M2 — Control flow, full RV32I, expression evaluator, watchpoints
 
-- All six branches, `jal`, `jalr`; `fence` no-op; `ecall`/`ebreak` halt with
-  message.
+- All six branches, `jal`, `jalr`; `fence` and `fence.i` no-ops;
+  `ecall`/`ebreak` halt with a message.
 - `expr.rs`: tokenizer, recursive-descent parser, evaluator with the full
   precedence table; unit tests for precedence and dereference.
 - `sdb`: `p`, `x N EXPR`, `w`, `d`, `info w`, `b`, `info b`; watchpoint
@@ -162,9 +180,13 @@ Each milestone ends in something you can see run.
 ### M4 — riscv-tests
 
 - Install the GNU RISC-V toolchain (see project-plan.md).
-- Build the `riscv-tests` `rv32ui-p-*` subset.
-- Harness: run each test, translate its pass/fail signal, print a summary,
-  exit non-zero on failure.
+- Build the `rv32ui-p-*` subset against our own environment: a replacement
+  `riscv_test.h` and linker script whose `RVTEST_PASS` / `RVTEST_FAIL` halt
+  through the sentinel, with the exit code in `a0`. The test bodies are
+  untouched; only the scaffolding around them changes. The branch stays
+  user-level — no CSRs, no trap entry, no `tohost` watch.
+- Harness: run each test, translate its exit code into pass or fail, print a
+  summary, exit non-zero on failure.
 - **Acceptance:** all `rv32ui-p-*` tests pass.
 
 ## 7. Cross-Cutting Implementation Decisions
@@ -205,8 +227,9 @@ Each milestone ends in something you can see run.
 
 - **Immediate sign-extension / field-split bugs** (B/S/J immediates) — the
   most likely source of silent wrongness; mitigated by early unit tests.
-- **`riscv-tests` harness convention** (`tohost`/signature plumbing) — set
-  aside focused time; it is fiddlier than the CPU.
+- **`riscv-tests` environment replacement** (our `riscv_test.h`, the linker
+  script, and the build plumbing around them) — set aside focused time; it is
+  fiddlier than the CPU.
 - **Scope creep** — the temptation to add UART, difftest, or RV64 is real;
   all of it is explicitly deferred to other branches.
 - **Toolchain availability at M3/M4** — shared dependency, see project-plan.md.
